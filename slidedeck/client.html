@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slidedeck</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  :root {
+    --bg-primary: #0f1117;
+    --bg-secondary: #1a1d27;
+    --bg-tertiary: #242836;
+    --bg-card: #1e2230;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0a6;
+    --text-muted: #5f6368;
+    --accent: #6c9eff;
+    --accent-dim: #3d5a99;
+    --green: #34a853;
+    --green-dim: rgba(52, 168, 83, 0.15);
+    --yellow: #fbbc04;
+    --red: #ea4335;
+    --red-dim: rgba(234, 67, 53, 0.15);
+    --orange: #ff8c42;
+    --border: #2d3245;
+    --sidebar-width: 220px;
+    --topbar-height: 52px;
+    --bottombar-height: 56px;
+    --thumb-height: 56px;
+  }
+
+  html.light {
+    --bg-primary: #f8f9fa;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e8eaed;
+    --bg-card: #ffffff;
+    --text-primary: #202124;
+    --text-secondary: #5f6368;
+    --text-muted: #9aa0a6;
+    --accent: #4285f4;
+    --accent-dim: #c6dafc;
+    --green: #34a853;
+    --green-dim: rgba(52, 168, 83, 0.1);
+    --yellow: #f9ab00;
+    --red: #ea4335;
+    --red-dim: rgba(234, 67, 53, 0.08);
+    --orange: #e8710a;
+    --border: #dadce0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    height: var(--topbar-height);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .topbar-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .topbar-logo svg { width: 20px; height: 20px; }
+
+  .topbar-title {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  .topbar-title strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .topbar-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .topbar-status.connected { color: var(--green); }
+  .topbar-status.disconnected { color: var(--red); }
+  .topbar-status.connecting { color: var(--yellow); }
+
+  .topbar-status .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+  }
+
+  .topbar-status.connected .dot { background: var(--green); animation: pulse 2s ease-in-out infinite; }
+  .topbar-status.disconnected .dot { background: var(--red); }
+  .topbar-status.connecting .dot { background: var(--yellow); animation: pulse 0.8s ease-in-out infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-icon {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .btn-icon:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+  }
+
+  .btn-icon svg { width: 16px; height: 16px; }
+
+  /* ── Main layout ── */
+  .main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-width);
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .sidebar-header {
+    padding: 12px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .slide-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .slide-thumb {
+    height: var(--thumb-height);
+    background: var(--bg-tertiary);
+    border: 2px solid transparent;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+  }
+
+  .slide-thumb:hover { border-color: var(--accent-dim); }
+
+  .slide-thumb.active {
+    border-color: var(--accent);
+    background: var(--bg-card);
+  }
+
+  .slide-thumb-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .slide-thumb.active .slide-thumb-num { color: var(--accent); }
+
+  .slide-thumb-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .slide-thumb-title {
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+  }
+
+  .slide-thumb-type {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .slide-thumb-icon {
+    flex-shrink: 0;
+    width: 16px; height: 16px;
+    color: var(--text-muted);
+  }
+
+  .slide-thumb[data-type="plotly"] .slide-thumb-icon { color: var(--accent); }
+  .slide-thumb[data-type="image"] .slide-thumb-icon { color: var(--green); }
+  .slide-thumb[data-type="stats"] .slide-thumb-icon { color: var(--orange); }
+
+  .sidebar-footer {
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── Content area ── */
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .slide-viewport {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  .slide-container {
+    width: 100%;
+    max-width: 1000px;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 80px 40px;
+    color: var(--text-muted);
+  }
+
+  .empty-state svg { width: 64px; height: 64px; opacity: 0.3; margin-bottom: 20px; }
+  .empty-state h2 { font-size: 20px; font-weight: 400; margin-bottom: 8px; color: var(--text-secondary); }
+  .empty-state p { font-size: 14px; }
+
+  /* ── Slide types ── */
+
+  .slide-title-card {
+    text-align: center;
+    padding: 80px 40px;
+  }
+
+  .slide-title-card h1 {
+    font-size: 36px;
+    font-weight: 300;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .slide-title-card .subtitle {
+    font-size: 18px;
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+  }
+
+  .slide-title-card .date-range {
+    display: inline-block;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 32px;
+    font-weight: 300;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .stat-value.good { color: var(--green); }
+  .stat-value.warn { color: var(--yellow); }
+  .stat-value.bad { color: var(--red); }
+  .stat-value.neutral { color: var(--text-primary); }
+
+  .stat-detail {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .tir-bar-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+
+  .tir-bar-label {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+  }
+
+  .tir-bar {
+    height: 32px;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    margin-bottom: 12px;
+  }
+
+  .tir-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+    transition: width 0.6s ease;
+  }
+
+  .tir-segment.very-low { background: #c62828; }
+  .tir-segment.low { background: var(--red); }
+  .tir-segment.in-range { background: var(--green); }
+  .tir-segment.high { background: var(--yellow); color: #333; }
+  .tir-segment.very-high { background: var(--orange); }
+
+  .tir-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .tir-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .tir-legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+  }
+
+  .slide-image-container {
+    text-align: center;
+  }
+
+  .slide-image-container img {
+    max-width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .slide-caption {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+
+  .slide-commentary {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 32px;
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  .slide-commentary h1, .slide-commentary h2, .slide-commentary h3 {
+    font-weight: 500;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+  }
+
+  .slide-commentary h1 { font-size: 24px; }
+  .slide-commentary h2 { font-size: 20px; }
+  .slide-commentary h3 { font-size: 16px; }
+
+  .slide-commentary p {
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+  }
+
+  .slide-commentary strong { color: var(--text-primary); }
+
+  .slide-commentary ul, .slide-commentary ol {
+    margin: 12px 0 12px 20px;
+    color: var(--text-secondary);
+  }
+
+  .slide-commentary li { margin-bottom: 6px; }
+
+  .slide-commentary code {
+    background: var(--bg-tertiary);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+
+  .slide-commentary .highlight {
+    background: var(--green-dim);
+    border-left: 3px solid var(--green);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+
+  .slide-commentary .warning {
+    background: var(--red-dim);
+    border-left: 3px solid var(--red);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+
+  .plotly-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .slide-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .slide-section-title {
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+  }
+
+  .disclaimer {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .disclaimer svg {
+    width: 16px; height: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* ── Bottom bar ── */
+  .bottombar {
+    height: var(--bottombar-height);
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    flex-shrink: 0;
+  }
+
+  .nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-nav {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+
+  .btn-nav:hover {
+    background: var(--accent-dim);
+    color: var(--text-primary);
+    border-color: var(--accent);
+  }
+
+  .btn-nav:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .btn-nav svg { width: 14px; height: 14px; }
+
+  .slide-counter {
+    font-size: 13px;
+    color: var(--text-muted);
+    min-width: 60px;
+    text-align: center;
+  }
+
+  .slide-counter strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .progress-bar {
+    flex: 1;
+    max-width: 300px;
+    height: 3px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    margin: 0 20px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  .keyboard-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  kbd {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-family: inherit;
+  }
+
+  .building-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  .building-indicator .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .building-indicator.hidden { display: none; }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<!-- ── Top bar ── -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+    </svg>
+    Slidedeck
+  </div>
+  <div class="topbar-title" id="deckTitle">
+    <strong>Slidedeck</strong>
+  </div>
+  <div class="topbar-status connecting" id="connStatus">
+    <span class="dot"></span>
+    <span id="connLabel">Connecting...</span>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn-icon" onclick="toggleTheme()" title="Toggle dark/light mode">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      </svg>
+    </button>
+    <button class="btn-icon" onclick="toggleFullscreen()" title="Fullscreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-header">Slides</div>
+    <div class="slide-list" id="slideList"></div>
+    <div class="sidebar-footer">
+      <div class="building-indicator hidden" id="buildingIndicator">
+        <div class="spinner"></div>
+        Agent is presenting...
+      </div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="slide-viewport" id="viewport"></div>
+  </div>
+</div>
+
+<!-- ── Bottom bar ── -->
+<div class="bottombar">
+  <div class="nav-controls">
+    <button class="btn-nav" id="btnPrev" onclick="navigate(-1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      Prev
+    </button>
+    <div class="slide-counter" id="slideCounter"><strong>0</strong> / 0</div>
+    <button class="btn-nav" id="btnNext" onclick="navigate(1)">
+      Next
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+  </div>
+  <div class="keyboard-hint">
+    <kbd>&larr;</kbd> <kbd>&rarr;</kbd> to navigate
+  </div>
+</div>
+
+<script>
+// ── State ──
+let slides = [];
+let currentSlideId = null;
+let deckTitle = 'Slidedeck';
+let ws = null;
+let reconnectDelay = 500;
+const MAX_RECONNECT_DELAY = 10000;
+
+// ── Type icons for sidebar ──
+const TYPE_ICONS = {
+  html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>',
+  stats: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>',
+  plotly: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/></svg>',
+  image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+  markdown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>',
+};
+
+// ── WebSocket ──
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}/ws`);
+
+  ws.onopen = () => {
+    reconnectDelay = 500;
+    setConnectionStatus('connected', 'Agent connected');
+  };
+
+  ws.onclose = () => {
+    setConnectionStatus('disconnected', 'Disconnected');
+    scheduleReconnect();
+  };
+
+  ws.onerror = () => {
+    ws.close();
+  };
+
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    handleMessage(msg);
+  };
+}
+
+function scheduleReconnect() {
+  setConnectionStatus('connecting', 'Reconnecting...');
+  setTimeout(() => {
+    connect();
+    reconnectDelay = Math.min(reconnectDelay * 1.5, MAX_RECONNECT_DELAY);
+  }, reconnectDelay);
+}
+
+function setConnectionStatus(state, label) {
+  const el = document.getElementById('connStatus');
+  el.className = 'topbar-status ' + state;
+  document.getElementById('connLabel').textContent = label;
+}
+
+function sendMessage(type, data) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type, data }));
+  }
+}
+
+// ── Message handlers ──
+function handleMessage(msg) {
+  switch (msg.type) {
+    case 'deck:sync':
+      slides = msg.data.slides || [];
+      currentSlideId = msg.data.current_slide_id;
+      deckTitle = msg.data.title || 'Slidedeck';
+      updateTitle();
+      render();
+      break;
+
+    case 'deck:meta':
+      deckTitle = msg.data.title || deckTitle;
+      updateTitle();
+      break;
+
+    case 'deck:cleared':
+      slides = [];
+      currentSlideId = null;
+      render();
+      break;
+
+    case 'slide:added':
+      addOrUpdateSlide(msg.data);
+      // Auto-navigate to new slide
+      currentSlideId = msg.data.id;
+      render();
+      showBuildingIndicator();
+      break;
+
+    case 'slide:updated':
+      addOrUpdateSlide(msg.data);
+      render();
+      showBuildingIndicator();
+      break;
+
+    case 'slide:removed':
+      slides = slides.filter(s => s.id !== msg.data.id);
+      if (currentSlideId === msg.data.id) {
+        currentSlideId = slides.length > 0 ? slides[0].id : null;
+      }
+      render();
+      break;
+
+    case 'slide:navigate':
+      currentSlideId = msg.data.id;
+      render();
+      break;
+  }
+}
+
+function addOrUpdateSlide(slide) {
+  const idx = slides.findIndex(s => s.id === slide.id);
+  if (idx >= 0) {
+    slides[idx] = slide;
+  } else {
+    slides.push(slide);
+  }
+  slides.sort((a, b) => a.position - b.position);
+}
+
+// ── Building indicator ──
+let buildingTimeout = null;
+
+function showBuildingIndicator() {
+  document.getElementById('buildingIndicator').classList.remove('hidden');
+  clearTimeout(buildingTimeout);
+  buildingTimeout = setTimeout(() => {
+    document.getElementById('buildingIndicator').classList.add('hidden');
+  }, 3000);
+}
+
+// ── Rendering ──
+function updateTitle() {
+  document.getElementById('deckTitle').innerHTML = `<strong>${escapeHtml(deckTitle)}</strong>`;
+  document.title = deckTitle + ' — Slidedeck';
+}
+
+function render() {
+  renderSlideList();
+  renderCurrentSlide();
+  updateNavigation();
+}
+
+function renderSlideList() {
+  const list = document.getElementById('slideList');
+  list.innerHTML = slides.map((s, i) => `
+    <div class="slide-thumb ${s.id === currentSlideId ? 'active' : ''}"
+         data-type="${s.type}"
+         onclick="goToSlide('${s.id}')">
+      <div class="slide-thumb-num">${i + 1}</div>
+      <div class="slide-thumb-info">
+        <div class="slide-thumb-title">${escapeHtml(s.title || s.id)}</div>
+        <div class="slide-thumb-type">${s.type}</div>
+      </div>
+      <div class="slide-thumb-icon">${TYPE_ICONS[s.type] || ''}</div>
+    </div>
+  `).join('');
+}
+
+function renderCurrentSlide() {
+  const viewport = document.getElementById('viewport');
+
+  if (slides.length === 0) {
+    viewport.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="3" width="20" height="14" rx="2"/>
+          <path d="M8 21h8M12 17v4"/>
+        </svg>
+        <h2>Waiting for slides...</h2>
+        <p>The agent will push slides here as it builds the presentation.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const slide = slides.find(s => s.id === currentSlideId);
+  if (!slide) {
+    if (slides.length > 0) {
+      currentSlideId = slides[0].id;
+      renderCurrentSlide();
+    }
+    return;
+  }
+
+  let html = '';
+  switch (slide.type) {
+    case 'html':
+    case 'stats':
+      html = slide.content;
+      break;
+
+    case 'markdown':
+      html = `<div class="slide-commentary">${marked.parse(slide.content)}</div>`;
+      break;
+
+    case 'image':
+      html = `
+        <div class="slide-image-container">
+          <img src="/assets/${encodeURIComponent(slide.content)}"
+               alt="${escapeHtml(slide.title || slide.id)}"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+          />
+          <div class="slide-image-placeholder" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M3 16l5-5 4 4 4-6 5 5"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+            </svg>
+            <div>Image not found: ${escapeHtml(slide.content)}</div>
+          </div>
+        </div>
+      `;
+      break;
+
+    case 'plotly':
+      html = `<div class="plotly-container" id="plotly-${slide.id}"></div>`;
+      break;
+  }
+
+  if (slide.title) {
+    html = `<div class="slide-section-title">${escapeHtml(slide.title)}</div>` + html;
+  }
+
+  viewport.innerHTML = `<div class="slide-container">${html}</div>`;
+
+  // Post-render: Plotly charts
+  if (slide.type === 'plotly') {
+    requestAnimationFrame(() => renderPlotly(slide));
+  }
+}
+
+function renderPlotly(slide) {
+  const el = document.getElementById(`plotly-${slide.id}`);
+  if (!el) return;
+
+  try {
+    const spec = JSON.parse(slide.content);
+    const isDark = !document.documentElement.classList.contains('light');
+
+    // Apply theme-aware defaults
+    const layout = spec.layout || {};
+    layout.paper_bgcolor = layout.paper_bgcolor || 'rgba(0,0,0,0)';
+    layout.plot_bgcolor = layout.plot_bgcolor || 'rgba(0,0,0,0)';
+    layout.font = layout.font || {};
+    layout.font.color = layout.font.color || (isDark ? '#9aa0a6' : '#5f6368');
+
+    // Theme grid colors if not set
+    const gridColor = isDark ? '#2d3245' : '#dadce0';
+    if (layout.xaxis && !layout.xaxis.gridcolor) layout.xaxis.gridcolor = gridColor;
+    if (layout.yaxis && !layout.yaxis.gridcolor) layout.yaxis.gridcolor = gridColor;
+
+    Plotly.newPlot(el, spec.data || [], layout, {
+      responsive: true,
+      displayModeBar: true,
+      modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'],
+      displaylogo: false,
+    });
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--red)">Failed to render Plotly chart: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+function updateNavigation() {
+  const idx = slides.findIndex(s => s.id === currentSlideId);
+  const total = slides.length;
+
+  document.getElementById('slideCounter').innerHTML =
+    total > 0 ? `<strong>${idx + 1}</strong> / ${total}` : '<strong>0</strong> / 0';
+  document.getElementById('progressFill').style.width =
+    total > 0 ? `${((idx + 1) / total) * 100}%` : '0%';
+  document.getElementById('btnPrev').disabled = idx <= 0;
+  document.getElementById('btnNext').disabled = idx >= total - 1;
+}
+
+// ── Navigation ──
+function navigate(dir) {
+  const idx = slides.findIndex(s => s.id === currentSlideId);
+  const next = idx + dir;
+  if (next >= 0 && next < slides.length) {
+    goToSlide(slides[next].id);
+  }
+}
+
+function goToSlide(id) {
+  currentSlideId = id;
+  render();
+  sendMessage('slide:viewed', { id });
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); navigate(-1); }
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); navigate(1); }
+});
+
+// ── Theme ──
+function toggleTheme() {
+  document.documentElement.classList.toggle('light');
+  // Re-render Plotly charts with updated colors
+  const slide = slides.find(s => s.id === currentSlideId);
+  if (slide && slide.type === 'plotly') {
+    renderPlotly(slide);
+  }
+}
+
+// ── Fullscreen ──
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+// ── Util ──
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ── Init ──
+connect();
+</script>
+
+</body>
+</html>

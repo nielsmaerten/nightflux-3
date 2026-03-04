@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "slidedeck": {
+      "type": "stdio",
+      "command": ".venv/bin/python",
+      "args": ["-m", "slidedeck.server"]
+    }
+  }
+}

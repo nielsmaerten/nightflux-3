@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slidedeck — Diabetes Data Briefing</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  :root {
+    --bg-primary: #0f1117;
+    --bg-secondary: #1a1d27;
+    --bg-tertiary: #242836;
+    --bg-card: #1e2230;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0a6;
+    --text-muted: #5f6368;
+    --accent: #6c9eff;
+    --accent-dim: #3d5a99;
+    --green: #34a853;
+    --green-dim: rgba(52, 168, 83, 0.15);
+    --yellow: #fbbc04;
+    --red: #ea4335;
+    --red-dim: rgba(234, 67, 53, 0.15);
+    --orange: #ff8c42;
+    --border: #2d3245;
+    --sidebar-width: 220px;
+    --topbar-height: 52px;
+    --bottombar-height: 56px;
+    --thumb-height: 56px;
+  }
+
+  html.light {
+    --bg-primary: #f8f9fa;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e8eaed;
+    --bg-card: #ffffff;
+    --text-primary: #202124;
+    --text-secondary: #5f6368;
+    --text-muted: #9aa0a6;
+    --accent: #4285f4;
+    --accent-dim: #c6dafc;
+    --green: #34a853;
+    --green-dim: rgba(52, 168, 83, 0.1);
+    --yellow: #f9ab00;
+    --red: #ea4335;
+    --red-dim: rgba(234, 67, 53, 0.08);
+    --orange: #e8710a;
+    --border: #dadce0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    height: var(--topbar-height);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .topbar-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .topbar-logo svg { width: 20px; height: 20px; }
+
+  .topbar-title {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  .topbar-title strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .topbar-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--green);
+  }
+
+  .topbar-status .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-icon {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .btn-icon:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+  }
+
+  .btn-icon svg { width: 16px; height: 16px; }
+
+  /* ── Main layout ── */
+  .main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-width);
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .sidebar-header {
+    padding: 12px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .slide-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .slide-thumb {
+    height: var(--thumb-height);
+    background: var(--bg-tertiary);
+    border: 2px solid transparent;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+  }
+
+  .slide-thumb:hover { border-color: var(--accent-dim); }
+
+  .slide-thumb.active {
+    border-color: var(--accent);
+    background: var(--bg-card);
+  }
+
+  .slide-thumb-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .slide-thumb.active .slide-thumb-num { color: var(--accent); }
+
+  .slide-thumb-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .slide-thumb-title {
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+  }
+
+  .slide-thumb-type {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .slide-thumb-icon {
+    flex-shrink: 0;
+    width: 16px; height: 16px;
+    color: var(--text-muted);
+  }
+
+  /* type-specific thumb indicators */
+  .slide-thumb[data-type="plotly"] .slide-thumb-icon { color: var(--accent); }
+  .slide-thumb[data-type="image"] .slide-thumb-icon { color: var(--green); }
+  .slide-thumb[data-type="stats"] .slide-thumb-icon { color: var(--orange); }
+
+  /* ── Content area ── */
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .slide-viewport {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  .slide-container {
+    width: 100%;
+    max-width: 1000px;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Slide types ── */
+
+  /* Title slide */
+  .slide-title-card {
+    text-align: center;
+    padding: 80px 40px;
+  }
+
+  .slide-title-card h1 {
+    font-size: 36px;
+    font-weight: 300;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .slide-title-card .subtitle {
+    font-size: 18px;
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+  }
+
+  .slide-title-card .date-range {
+    display: inline-block;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 32px;
+    font-weight: 300;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .stat-value.good { color: var(--green); }
+  .stat-value.warn { color: var(--yellow); }
+  .stat-value.bad { color: var(--red); }
+  .stat-value.neutral { color: var(--text-primary); }
+
+  .stat-detail {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  /* TIR bar */
+  .tir-bar-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+
+  .tir-bar-label {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+  }
+
+  .tir-bar {
+    height: 32px;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    margin-bottom: 12px;
+  }
+
+  .tir-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+    transition: width 0.6s ease;
+  }
+
+  .tir-segment.very-low { background: #c62828; }
+  .tir-segment.low { background: var(--red); }
+  .tir-segment.in-range { background: var(--green); }
+  .tir-segment.high { background: var(--yellow); color: #333; }
+  .tir-segment.very-high { background: var(--orange); }
+
+  .tir-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .tir-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .tir-legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+  }
+
+  /* Image slide */
+  .slide-image-container {
+    text-align: center;
+  }
+
+  .slide-image-container img,
+  .slide-image-placeholder {
+    max-width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .slide-image-placeholder {
+    background: var(--bg-card);
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--text-muted);
+  }
+
+  .slide-image-placeholder svg {
+    width: 48px; height: 48px;
+    opacity: 0.4;
+  }
+
+  .slide-caption {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+
+  /* Commentary / markdown */
+  .slide-commentary {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 32px;
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  .slide-commentary h2 {
+    font-size: 20px;
+    font-weight: 500;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+  }
+
+  .slide-commentary p {
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+  }
+
+  .slide-commentary strong { color: var(--text-primary); }
+
+  .slide-commentary ul {
+    margin: 12px 0 12px 20px;
+    color: var(--text-secondary);
+  }
+
+  .slide-commentary li { margin-bottom: 6px; }
+
+  .slide-commentary .highlight {
+    background: var(--green-dim);
+    border-left: 3px solid var(--green);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+
+  .slide-commentary .warning {
+    background: var(--red-dim);
+    border-left: 3px solid var(--red);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+
+  /* Plotly container */
+  .plotly-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* Split layout */
+  .slide-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .slide-section-title {
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+  }
+
+  /* Healthcare disclaimer */
+  .disclaimer {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .disclaimer svg {
+    width: 16px; height: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* ── Bottom bar ── */
+  .bottombar {
+    height: var(--bottombar-height);
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    flex-shrink: 0;
+  }
+
+  .nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-nav {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+
+  .btn-nav:hover {
+    background: var(--accent-dim);
+    color: var(--text-primary);
+    border-color: var(--accent);
+  }
+
+  .btn-nav:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .btn-nav svg { width: 14px; height: 14px; }
+
+  .slide-counter {
+    font-size: 13px;
+    color: var(--text-muted);
+    min-width: 60px;
+    text-align: center;
+  }
+
+  .slide-counter strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .progress-bar {
+    flex: 1;
+    max-width: 300px;
+    height: 3px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    margin: 0 20px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  .keyboard-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  kbd {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-family: inherit;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* ── Building animation for "live" feel ── */
+  .building-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  .building-indicator .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Top bar ── -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+    </svg>
+    Slidedeck
+  </div>
+  <div class="topbar-title">
+    <strong>Weekly Diabetes Briefing</strong> &mdash; Feb 25 &ndash; Mar 3, 2026
+  </div>
+  <div class="topbar-status">
+    <span class="dot"></span>
+    Agent connected
+  </div>
+  <div class="topbar-actions">
+    <button class="btn-icon" onclick="toggleTheme()" title="Toggle dark/light mode">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      </svg>
+    </button>
+    <button class="btn-icon" title="Fullscreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div class="main">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">Slides</div>
+    <div class="slide-list" id="slideList"></div>
+    <div style="padding: 12px; border-top: 1px solid var(--border);">
+      <div class="building-indicator">
+        <div class="spinner"></div>
+        Agent is presenting...
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <div class="slide-viewport" id="viewport"></div>
+  </div>
+</div>
+
+<!-- ── Bottom bar ── -->
+<div class="bottombar">
+  <div class="nav-controls">
+    <button class="btn-nav" id="btnPrev" onclick="navigate(-1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      Prev
+    </button>
+    <div class="slide-counter" id="slideCounter"><strong>1</strong> / 6</div>
+    <button class="btn-nav" id="btnNext" onclick="navigate(1)">
+      Next
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill" style="width: 16.6%"></div>
+  </div>
+  <div class="keyboard-hint">
+    <kbd>&larr;</kbd> <kbd>&rarr;</kbd> to navigate
+  </div>
+</div>
+
+<script>
+// ── Slide data (simulating what the MCP server would push) ──
+const slides = [
+  {
+    id: 'title',
+    title: 'Title',
+    type: 'title',
+    render: () => `
+      <div class="slide-title-card">
+        <h1>Weekly Diabetes Briefing</h1>
+        <p class="subtitle">Automated Loop Performance Review</p>
+        <div class="date-range">Feb 25 &ndash; Mar 3, 2026 &nbsp;&middot;&nbsp; 7 days</div>
+      </div>
+    `
+  },
+  {
+    id: 'summary-stats',
+    title: 'Summary Stats',
+    type: 'stats',
+    render: () => `
+      <div class="slide-section-title">Week at a Glance</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Time in Range</div>
+          <div class="stat-value good">78%</div>
+          <div class="stat-detail">Target: &gt;70%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Average BG</div>
+          <div class="stat-value neutral">142</div>
+          <div class="stat-detail">mg/dl &nbsp;&middot;&nbsp; eA1c 6.6%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg TDD</div>
+          <div class="stat-value neutral">64.2</div>
+          <div class="stat-detail">Units/day</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">CV</div>
+          <div class="stat-value good">33%</div>
+          <div class="stat-detail">Target: &lt;36%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Time Below</div>
+          <div class="stat-value good">1.8%</div>
+          <div class="stat-detail">Target: &lt;4%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Carbs</div>
+          <div class="stat-value neutral">168</div>
+          <div class="stat-detail">g/day</div>
+        </div>
+      </div>
+      <div class="tir-bar-container">
+        <div class="tir-bar-label">Time in Range Distribution</div>
+        <div class="tir-bar">
+          <div class="tir-segment very-low" style="width: 0.4%"></div>
+          <div class="tir-segment low" style="width: 1.4%">1%</div>
+          <div class="tir-segment in-range" style="width: 78%">78%</div>
+          <div class="tir-segment high" style="width: 16.2%">16%</div>
+          <div class="tir-segment very-high" style="width: 4%">4%</div>
+        </div>
+        <div class="tir-legend">
+          <div class="tir-legend-item"><div class="tir-legend-dot" style="background:#c62828"></div> Very low (&lt;54)</div>
+          <div class="tir-legend-item"><div class="tir-legend-dot" style="background:var(--red)"></div> Low (54-69)</div>
+          <div class="tir-legend-item"><div class="tir-legend-dot" style="background:var(--green)"></div> In range (70-180)</div>
+          <div class="tir-legend-item"><div class="tir-legend-dot" style="background:var(--yellow)"></div> High (181-250)</div>
+          <div class="tir-legend-item"><div class="tir-legend-dot" style="background:var(--orange)"></div> Very high (&gt;250)</div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: 'cgm-interactive',
+    title: 'CGM Overlay',
+    type: 'plotly',
+    render: () => `
+      <div class="slide-section-title">7-Day CGM Overlay</div>
+      <div class="plotly-container" id="plotly-cgm"></div>
+      <div class="slide-commentary" style="margin-top: 16px; padding: 20px;">
+        <p><strong>Interactive chart</strong> &mdash; hover for values, drag to zoom, double-click to reset. Each line is one day, colored by date.</p>
+      </div>
+    `,
+    afterRender: () => renderCGMPlotly()
+  },
+  {
+    id: 'basal-bolus-png',
+    title: 'Basal & Bolus',
+    type: 'image',
+    render: () => `
+      <div class="slide-section-title">Basal & Bolus Timeline — Mar 3</div>
+      <div class="slide-image-container">
+        <div class="slide-image-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 16l5-5 4 4 4-6 5 5"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+          </svg>
+          <div>basal_bolus_mar3.png</div>
+          <div style="font-size: 11px; opacity: 0.6;">matplotlib-generated PNG served from project directory</div>
+        </div>
+      </div>
+      <div class="slide-caption">
+        Basal rate (blue fill), SMBs (orange stems), and manual boluses (red stems).
+        The large meal bolus at 18:30 corresponds to dinner (65g carbs).
+      </div>
+    `
+  },
+  {
+    id: 'overnight-analysis',
+    title: 'Overnight Pattern',
+    type: 'markdown',
+    render: () => `
+      <div class="slide-split">
+        <div>
+          <div class="slide-section-title">Overnight Analysis</div>
+          <div class="slide-commentary">
+            <h2>Midnight to 6 AM</h2>
+            <p>Overnight BG remained <strong>remarkably stable</strong> across 6 of 7 nights, staying within 85&ndash;130 mg/dl with minimal SMB activity.</p>
+            <div class="highlight">
+              <strong>Average overnight BG:</strong> 112 mg/dl<br>
+              <strong>Overnight CV:</strong> 18% (very stable)
+            </div>
+            <p>One outlier night (Feb 27) saw a late snack at 23:15 causing a rise to 195, which the loop corrected by 03:00.</p>
+            <div class="warning">
+              <strong>Feb 27:</strong> Late carbs (30g) at 23:15 without a pre-bolus led to a 2.5-hour excursion above range.
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="slide-section-title">Overnight BG Spread</div>
+          <div class="plotly-container" id="plotly-overnight"></div>
+        </div>
+      </div>
+    `,
+    afterRender: () => renderOvernightPlotly()
+  },
+  {
+    id: 'closing',
+    title: 'Summary',
+    type: 'markdown',
+    render: () => `
+      <div class="slide-section-title">Key Takeaways</div>
+      <div class="slide-commentary">
+        <h2>This Week's Highlights</h2>
+        <ul>
+          <li><strong>TIR at 78%</strong> &mdash; above the 70% target, consistent with last week's 76%</li>
+          <li><strong>Low time below range (1.8%)</strong> &mdash; well under the 4% safety threshold</li>
+          <li><strong>CV of 33%</strong> &mdash; glucose variability is well-controlled</li>
+          <li><strong>Overnights are solid</strong> &mdash; basal rates are well-tuned for fasting periods</li>
+          <li><strong>Post-dinner highs</strong> are the main opportunity area &mdash; consider earlier pre-bolus timing for evening meals</li>
+        </ul>
+        <p>Overall trend is stable with no significant changes from the prior week.</p>
+      </div>
+      <div class="disclaimer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+        </svg>
+        <div>
+          <strong>Important:</strong> These observations are informational only. Please discuss any
+          therapy changes with your healthcare provider before making adjustments.
+        </div>
+      </div>
+    `
+  }
+];
+
+// ── Generate realistic CGM data ──
+function generateCGMDay(baseLevel, noise, mealSpikes) {
+  const points = [];
+  for (let m = 0; m < 24 * 60; m += 5) {
+    let bg = baseLevel + (Math.sin(m / 180 * Math.PI) * 15);  // circadian drift
+    // Add meal spikes
+    for (const spike of mealSpikes) {
+      const dist = m - spike.time;
+      if (dist > -10 && dist < spike.duration) {
+        const progress = Math.max(0, dist) / spike.duration;
+        bg += spike.height * Math.sin(progress * Math.PI) * Math.exp(-progress * 0.5);
+      }
+    }
+    bg += (Math.random() - 0.5) * noise;
+    points.push({ time: m, bg: Math.round(Math.max(55, Math.min(350, bg))) });
+  }
+  return points;
+}
+
+function renderCGMPlotly() {
+  const el = document.getElementById('plotly-cgm');
+  if (!el) return;
+
+  const dayColors = ['#6c9eff', '#ff8c42', '#34a853', '#ea4335', '#fbbc04', '#9c27b0', '#00bcd4'];
+  const dayNames = ['Feb 25', 'Feb 26', 'Feb 27', 'Feb 28', 'Mar 1', 'Mar 2', 'Mar 3'];
+
+  const meals = [
+    [
+      { time: 8*60, height: 60, duration: 120 },
+      { time: 12.5*60, height: 55, duration: 100 },
+      { time: 18.5*60, height: 70, duration: 130 }
+    ],
+    [
+      { time: 7.5*60, height: 50, duration: 110 },
+      { time: 13*60, height: 65, duration: 120 },
+      { time: 19*60, height: 55, duration: 100 }
+    ],
+    [
+      { time: 8*60, height: 45, duration: 100 },
+      { time: 12*60, height: 50, duration: 110 },
+      { time: 18*60, height: 80, duration: 150 },
+      { time: 23.25*60, height: 70, duration: 120 }
+    ],
+    [
+      { time: 9*60, height: 55, duration: 120 },
+      { time: 13*60, height: 45, duration: 90 },
+      { time: 18.5*60, height: 60, duration: 110 }
+    ],
+    [
+      { time: 7*60, height: 40, duration: 100 },
+      { time: 12.5*60, height: 70, duration: 130 },
+      { time: 19*60, height: 50, duration: 100 }
+    ],
+    [
+      { time: 10*60, height: 65, duration: 130 },
+      { time: 14*60, height: 45, duration: 90 },
+      { time: 19.5*60, height: 60, duration: 110 }
+    ],
+    [
+      { time: 8.5*60, height: 50, duration: 110 },
+      { time: 12*60, height: 55, duration: 100 },
+      { time: 18*60, height: 75, duration: 140 }
+    ],
+  ];
+
+  const traces = dayNames.map((name, i) => {
+    const day = generateCGMDay(110 + (Math.random() - 0.5) * 20, 8, meals[i]);
+    return {
+      x: day.map(p => {
+        const h = Math.floor(p.time / 60);
+        const m = p.time % 60;
+        return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+      }),
+      y: day.map(p => p.bg),
+      mode: 'lines',
+      name: name,
+      line: { color: dayColors[i], width: 1.5 },
+      hovertemplate: `${name}<br>%{x}<br>%{y} mg/dl<extra></extra>`
+    };
+  });
+
+  const isDark = !document.documentElement.classList.contains('light');
+  const layout = {
+    height: 380,
+    margin: { t: 20, r: 30, b: 50, l: 50 },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: { color: isDark ? '#9aa0a6' : '#5f6368', size: 12 },
+    xaxis: {
+      title: 'Time of day',
+      gridcolor: isDark ? '#2d3245' : '#dadce0',
+      tickvals: ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00','24:00'],
+    },
+    yaxis: {
+      title: 'mg/dl',
+      range: [40, 300],
+      gridcolor: isDark ? '#2d3245' : '#dadce0',
+    },
+    shapes: [
+      { type: 'rect', x0: '00:00', x1: '23:55', y0: 70, y1: 180,
+        fillcolor: isDark ? 'rgba(52,168,83,0.08)' : 'rgba(52,168,83,0.06)',
+        line: { width: 0 }, layer: 'below' },
+      { type: 'line', x0: '00:00', x1: '23:55', y0: 70, y1: 70,
+        line: { color: '#34a853', width: 1, dash: 'dot' }, layer: 'below' },
+      { type: 'line', x0: '00:00', x1: '23:55', y0: 180, y1: 180,
+        line: { color: '#34a853', width: 1, dash: 'dot' }, layer: 'below' },
+    ],
+    legend: { orientation: 'h', y: -0.2 },
+    hovermode: 'x unified'
+  };
+
+  Plotly.newPlot(el, traces, layout, {
+    responsive: true,
+    displayModeBar: true,
+    modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'],
+    displaylogo: false
+  });
+}
+
+function renderOvernightPlotly() {
+  const el = document.getElementById('plotly-overnight');
+  if (!el) return;
+
+  // Box plot of overnight BG per day
+  const dayNames = ['Feb 25', 'Feb 26', 'Feb 27', 'Feb 28', 'Mar 1', 'Mar 2', 'Mar 3'];
+  const isDark = !document.documentElement.classList.contains('light');
+
+  const traces = dayNames.map((name, i) => {
+    const base = 105 + (Math.random() - 0.5) * 15;
+    const spread = i === 2 ? 40 : 15; // Feb 27 has wider spread
+    const n = 72; // 6 hours * 12 readings/hr
+    const values = Array.from({length: n}, () => base + (Math.random() - 0.5) * spread * 2);
+    if (i === 2) { // Feb 27 late snack spike
+      for (let j = 0; j < 20; j++) values[j] = 140 + Math.random() * 55;
+    }
+    return {
+      y: values,
+      name: name,
+      type: 'box',
+      boxpoints: false,
+      marker: { color: i === 2 ? '#ea4335' : '#6c9eff' },
+      line: { width: 1.5 }
+    };
+  });
+
+  Plotly.newPlot(el, traces, {
+    height: 350,
+    margin: { t: 10, r: 20, b: 40, l: 50 },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: { color: isDark ? '#9aa0a6' : '#5f6368', size: 11 },
+    yaxis: {
+      title: 'mg/dl',
+      range: [60, 220],
+      gridcolor: isDark ? '#2d3245' : '#dadce0',
+    },
+    xaxis: { gridcolor: isDark ? '#2d3245' : '#dadce0' },
+    shapes: [
+      { type: 'rect', x0: -0.5, x1: 6.5, y0: 70, y1: 180,
+        fillcolor: isDark ? 'rgba(52,168,83,0.08)' : 'rgba(52,168,83,0.06)',
+        line: { width: 0 }, layer: 'below' },
+    ],
+    showlegend: false
+  }, { responsive: true, displayModeBar: false });
+}
+
+// ── Navigation ──
+let currentSlide = 0;
+
+function renderSlideList() {
+  const list = document.getElementById('slideList');
+  const typeIcons = {
+    title: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>',
+    stats: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>',
+    plotly: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/></svg>',
+    image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+    markdown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>',
+  };
+
+  list.innerHTML = slides.map((s, i) => `
+    <div class="slide-thumb ${i === currentSlide ? 'active' : ''}"
+         data-type="${s.type}"
+         onclick="goToSlide(${i})">
+      <div class="slide-thumb-num">${i + 1}</div>
+      <div class="slide-thumb-info">
+        <div class="slide-thumb-title">${s.title}</div>
+        <div class="slide-thumb-type">${s.type}</div>
+      </div>
+      <div class="slide-thumb-icon">${typeIcons[s.type] || ''}</div>
+    </div>
+  `).join('');
+}
+
+function renderCurrentSlide() {
+  const viewport = document.getElementById('viewport');
+  const slide = slides[currentSlide];
+
+  viewport.innerHTML = `<div class="slide-container">${slide.render()}</div>`;
+
+  if (slide.afterRender) {
+    requestAnimationFrame(() => slide.afterRender());
+  }
+
+  document.getElementById('slideCounter').innerHTML =
+    `<strong>${currentSlide + 1}</strong> / ${slides.length}`;
+  document.getElementById('progressFill').style.width =
+    `${((currentSlide + 1) / slides.length) * 100}%`;
+  document.getElementById('btnPrev').disabled = currentSlide === 0;
+  document.getElementById('btnNext').disabled = currentSlide === slides.length - 1;
+
+  renderSlideList();
+}
+
+function navigate(dir) {
+  const next = currentSlide + dir;
+  if (next >= 0 && next < slides.length) {
+    currentSlide = next;
+    renderCurrentSlide();
+  }
+}
+
+function goToSlide(i) {
+  currentSlide = i;
+  renderCurrentSlide();
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); navigate(-1); }
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); navigate(1); }
+});
+
+// Theme toggle
+function toggleTheme() {
+  document.documentElement.classList.toggle('light');
+  // Re-render current slide to update Plotly colors
+  renderCurrentSlide();
+}
+
+// ── Init ──
+renderCurrentSlide();
+</script>
+
+</body>
+</html>
